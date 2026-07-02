@@ -136,6 +136,7 @@ async function saveStoredImages(images) {
         dataUrl: image.dataUrl,
         prompt: image.prompt,
         model: image.model,
+        requestPayload: image.requestPayload,
         revisedPrompt: image.revisedPrompt,
         createdAt: image.createdAt
       });
@@ -294,6 +295,16 @@ function App() {
     window.setTimeout(() => setStatus("idle"), 1200);
   }
 
+  function useReversePrompt() {
+    if (!reversePrompt) {
+      return;
+    }
+
+    setPrompt(reversePrompt);
+    setIdea(reversePrompt);
+    setReverseStatus("applied");
+  }
+
   async function handleReverseImage(event) {
     const file = event.target.files?.[0];
     if (!file) {
@@ -411,7 +422,8 @@ function App() {
       const nextImages = (await extractImages(data)).map((image) => ({
         ...image,
         prompt,
-        model: config.imageModel
+        model: config.imageModel,
+        requestPayload: payloadPreview
       }));
       if (!nextImages.length) {
         throw new Error("接口没有返回可显示的图片");
@@ -432,6 +444,11 @@ function App() {
   const isGenerating = status === "generating";
   const isOptimizing = status === "optimizing";
   const isReversing = reverseStatus === "reversing";
+  const activeRequestPayload = activeImage?.requestPayload || {
+    model: activeImage?.model || config.imageModel,
+    prompt: activeImage?.prompt || prompt,
+    revised_prompt: activeImage?.revisedPrompt
+  };
 
   return (
     <main className="app-shell">
@@ -575,7 +592,7 @@ function App() {
                   <textarea className="reverse-instruction" value={reverseInstruction} onChange={(event) => setReverseInstruction(event.target.value)} />
                 </Field>
                 <div className="action-row">
-                  <button className="secondary-button" onClick={() => reversePrompt && setPrompt(reversePrompt)} disabled={!reversePrompt}>
+                  <button className="secondary-button" onClick={useReversePrompt} disabled={!reversePrompt}>
                     <Save size={17} />
                     使用结果
                   </button>
@@ -584,6 +601,7 @@ function App() {
                     反推提示词
                   </button>
                 </div>
+                {reverseStatus === "applied" && <p className="save-state">反推结果已同步到画面目标和最终发送 Prompt</p>}
                 {reverseError && <div className="error-box">{reverseError}</div>}
               </div>
               <div className="reverse-output">
@@ -600,7 +618,7 @@ function App() {
                 <>
                   <img src={activeImage.src} alt="Generated result" />
                   <div className="preview-toolbar">
-                    <span>{config.imageModel}</span>
+                    <span>{activeImage.model || config.imageModel}</span>
                     <a href={activeImage.src} download="prompt-image-studio.png" title="下载图片">
                       <Download size={18} />
                     </a>
@@ -626,7 +644,7 @@ function App() {
                   </button>
                 ))}
               </div>
-              <pre>{JSON.stringify(payloadPreview, null, 2)}</pre>
+              <pre>{JSON.stringify(activeRequestPayload, null, 2)}</pre>
               {rawResponse && <details><summary>原始返回</summary><pre>{JSON.stringify(rawResponse, null, 2)}</pre></details>}
             </section>
           </div>
