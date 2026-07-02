@@ -24,6 +24,7 @@ const defaultConfig = {
   baseUrl: "https://api.openai.com/v1",
   apiKey: "",
   textModel: "gpt-5.4",
+  visionModel: "gpt-4o",
   imageModel: "gpt-image-2",
   size: "1024x1024",
   quality: "auto",
@@ -237,6 +238,11 @@ function App() {
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [rawResponse, setRawResponse] = useState(null);
+  const [reverseImage, setReverseImage] = useState(null);
+  const [reverseInstruction, setReverseInstruction] = useState("保留主体、构图、光线和质感，生成适合文生图模型复现的英文提示词。");
+  const [reversePrompt, setReversePrompt] = useState("");
+  const [reverseError, setReverseError] = useState("");
+  const [reverseStatus, setReverseStatus] = useState("idle");
 
   useEffect(() => {
     let cancelled = false;
@@ -286,6 +292,62 @@ function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
     setStatus("saved");
     window.setTimeout(() => setStatus("idle"), 1200);
+  }
+
+  async function handleReverseImage(event) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setReverseError("请上传图片文件。");
+      return;
+    }
+
+    const dataUrl = await blobToDataUrl(file);
+    setReverseImage({
+      name: file.name,
+      dataUrl
+    });
+    setReversePrompt("");
+    setReverseError("");
+  }
+
+  async function reversePromptFromImage() {
+    if (!reverseImage) {
+      setReverseError("请先上传图片。");
+      return;
+    }
+
+    setReverseStatus("reversing");
+    setReverseError("");
+
+    try {
+      const response = await fetch("/api/reverse-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          baseUrl: config.baseUrl,
+          apiKey: config.apiKey,
+          visionModel: config.visionModel,
+          imageDataUrl: reverseImage.dataUrl,
+          instruction: reverseInstruction
+        })
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.prompt) {
+        throw new Error(data.error || "图片反推失败");
+      }
+
+      setReversePrompt(data.prompt);
+      setPrompt(data.prompt);
+      setReverseStatus("done");
+    } catch (caught) {
+      setReverseError(caught instanceof Error ? caught.message : "图片反推失败");
+      setReverseStatus("error");
+    }
   }
 
   async function optimizePrompt() {
@@ -369,6 +431,7 @@ function App() {
 
   const isGenerating = status === "generating";
   const isOptimizing = status === "optimizing";
+  const isReversing = reverseStatus === "reversing";
 
   return (
     <main className="app-shell">
@@ -398,6 +461,9 @@ function App() {
             </Field>
             <Field label="提示词模型名">
               <input value={config.textModel} onChange={(event) => updateConfig("textModel", event.target.value)} />
+            </Field>
+            <Field label="多模态模型名">
+              <input value={config.visionModel} onChange={(event) => updateConfig("visionModel", event.target.value)} />
             </Field>
             <Field label="图片模型名">
               <input value={config.imageModel} onChange={(event) => updateConfig("imageModel", event.target.value)} />
@@ -481,6 +547,50 @@ function App() {
               </div>
               <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} />
               {error && <div className="error-box">{error}</div>}
+            </div>
+          </div>
+
+          <div className="reverse-panel">
+            <div className="section-heading">
+              <ImageIcon size={20} />
+              <h2>图片反推提示词</h2>
+            </div>
+            <div className="reverse-grid">
+              <div>
+                <label className="upload-zone">
+                  {reverseImage ? (
+                    <img src={reverseImage.dataUrl} alt={reverseImage.name} />
+                  ) : (
+                    <span>
+                      <ImageIcon size={34} />
+                      上传参考图
+                    </span>
+                  )}
+                  <input type="file" accept="image/*" onChange={handleReverseImage} />
+                </label>
+                {reverseImage && <p className="file-name">{reverseImage.name}</p>}
+              </div>
+              <div>
+                <Field label="反推要求">
+                  <textarea className="reverse-instruction" value={reverseInstruction} onChange={(event) => setReverseInstruction(event.target.value)} />
+                </Field>
+                <div className="action-row">
+                  <button className="secondary-button" onClick={() => reversePrompt && setPrompt(reversePrompt)} disabled={!reversePrompt}>
+                    <Save size={17} />
+                    使用结果
+                  </button>
+                  <button className="primary-button" onClick={reversePromptFromImage} disabled={isReversing}>
+                    {isReversing ? <Loader2 className="spin" size={18} /> : <Wand2 size={18} />}
+                    反推提示词
+                  </button>
+                </div>
+                {reverseError && <div className="error-box">{reverseError}</div>}
+              </div>
+              <div className="reverse-output">
+                <Field label="反推结果">
+                  <textarea value={reversePrompt} onChange={(event) => setReversePrompt(event.target.value)} placeholder="多模态模型解析出的提示词会显示在这里，并自动同步到最终发送 Prompt。" />
+                </Field>
+              </div>
             </div>
           </div>
 
