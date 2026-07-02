@@ -120,7 +120,7 @@ app.post("/api/optimize-prompt", async (request, response) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: textModel || "gpt-5.4",
+        model: textModel || "gpt-5.5",
         temperature: 0.7,
         messages: [
           {

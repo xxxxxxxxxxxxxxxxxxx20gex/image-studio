@@ -4,6 +4,25 @@
 
 ## 启动
 
+生产部署启动或重启：
+
+```bash
+npm run build
+./scripts/restart_service.sh --restart
+```
+
+仅在服务未运行时启动：
+
+```bash
+./scripts/restart_service.sh --start
+```
+
+脚本参数放在 `scripts/restart_service.sh` 文件顶部，可修改 `APP_DIR`、`PORT`、`HOST`、`LOG_DIR`、`RUN_DIR`、`LOG_FILE`、`PID_FILE`、`START_TIMEOUT`、`HEALTH_URL`。这些参数只控制端口、监听地址、日志、PID、启动等待等运行状态，不包含模型名、API Key 或业务参数。
+
+脚本不负责构建前端。修改页面后，请先执行 `npm run build`，再执行 `./scripts/restart_service.sh --restart`。
+
+本地开发启动：
+
 ```bash
 npm install
 npm run dev

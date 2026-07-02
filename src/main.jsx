@@ -23,7 +23,7 @@ const IMAGE_STORE = "images";
 const defaultConfig = {
   baseUrl: "https://api.openai.com/v1",
   apiKey: "",
-  textModel: "gpt-5.4",
+  textModel: "gpt-5.5",
   visionModel: "gpt-4o",
   imageModel: "gpt-image-2",
   size: "1024x1024",
