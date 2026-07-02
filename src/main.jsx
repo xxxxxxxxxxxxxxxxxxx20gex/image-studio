@@ -21,10 +21,10 @@ const DB_VERSION = 1;
 const IMAGE_STORE = "images";
 
 const defaultConfig = {
-  baseUrl: "https://api.openai.com/v1",
+  baseUrl: "https://algorithm-gateway.wujie-ops.com/v1",
   apiKey: "",
   textModel: "gpt-5.5",
-  visionModel: "gpt-4o",
+  visionModel: "gpt-5.5",
   imageModel: "gpt-image-2",
   size: "1024x1024",
   quality: "auto",
