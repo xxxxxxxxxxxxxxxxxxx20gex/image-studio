@@ -101,9 +101,8 @@ start_service() {
     exit 1
   fi
 
-  : > "$LOG_FILE"
   (
-    setsid bash -c "cd '$APP_DIR' && exec env PORT='$PORT' HOST='$HOST' '$NODE_BIN' server/index.js >> '$LOG_FILE' 2>&1" < /dev/null &
+    setsid bash -c "cd '$APP_DIR' && exec env PORT='$PORT' HOST='$HOST' LOG_DIR='$LOG_DIR' '$NODE_BIN' server/index.js >> '$LOG_FILE' 2>&1" < /dev/null &
     echo $! > "$PID_FILE"
   )
 
